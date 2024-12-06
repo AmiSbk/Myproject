@@ -1,111 +1,52 @@
-<?php
+Cette application Symfony fournit une API restful pour gérer des tâches.
+Elle permet de créer, mettre à jour, supprimer et rechercher des tâches
 
-namespace App\Controller\Api;
+Instructions pour lancer l'application
 
-use App\Entity\Task;
-use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Annotation\Route;
+1. Installez les dépendances
+Assurez vous que PHP, Composer et MySQL sont installées, puis installez les dépendances avec Composer:
+composer install
 
-#[Route('/api/tasks')]
-class TaskController extends AbstractController
-{
-    private EntityManagerInterface $entityManager;
+2. Configurer l'environnement
+Configurer la connexion à la base de données dans le fichier .environnement
 
-    public function __construct(EntityManagerInterface $entityManager)
-    {
-        $this->entityManager = $entityManager;
-    }
+3. Initialisation de la base de donnée
+Créez la base de donnée et appliquez les migrations
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
 
-    // 1. Lister toutes les tâches
-    #[Route('', name: 'api_tasks_list', methods: ['GET'])]
-    public function list(): JsonResponse
-    {
-        $tasks = $this->entityManager->getRepository(Task::class)->findAll();
-        $data = array_map(function (Task $task) {
-            return [
-                'id' => $task->getId(),
-                'name' => $task->getName(),
-                'status' => $task->getStatus(),
-            ];
-        }, $tasks);
+4. Démarrer le serveur de développement de Symfony
+symfony serve
+Vous pouvez utilisez Wamp Server pour gérer le serveur plus facilement
 
-        return $this->json($data);
-    }
+5. Exécuter les tests
+Installer le packages de test Symfony avec composer:
+composer require --dev symfony/test-pack
 
-    // 2. Créer une nouvelle tâche
-    #[Route('', name: 'api_tasks_create', methods: ['POST'])]
-    public function create(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
+Exécuter les tests avec PHPUnit :
+php bin/phpunit
 
-        if (empty($data['name']) || empty($data['status'])) {
-            return $this->json(['error' => 'Invalid data'], 400);
-        }
+Les tests incluent des tests unitaires afin de vérifier la logique (que les méthodes de l'entité fonctionnent)  et des tests fonctionnels pour vérifier le comportement des de l'API ( vérifie que les endpoints retourne bien les donénes attendues)
 
-        $task = new Task();
-        $task->setName($data['name']);
-        $task->setStatus($data['status']);
+Choix Techniques
+1. Installation l simplifiée avec WAMP
+WAMP a été choisi pour sa capacité à centraliser PHP, MySQL, et Apache, rendant l'installation plus simple sur Windows.
 
-        $this->entityManager->persist($task);
-        $this->entityManager->flush();
+2. Symfony comme framework
+Symfony a été retenu pour les raisons suivantes :
 
-        return $this->json([
-            'message' => 'Task created successfully',
-            'task' => [
-                'id' => $task->getId(),
-                'name' => $task->getName(),
-                'status' => $task->getStatus(),
-            ],
-        ], 201);
-    }
+Doctrine pour la gestion des entités et des migrations.
+Gestion des contrôleurs et entités.
+Support REST : Simplicité dans la création d'une API REST grâce aux annotations de routage.
 
-    // 3. Mettre à jour une tâche existante
-    #[Route('/{id}', name: 'api_tasks_update', methods: ['PUT'])]
-    public function update(int $id, Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-        $task = $this->entityManager->getRepository(Task::class)->find($id);
+3. MySQL comme base de données
+Le choix de MySQL est motivé par sa compatibilité avec Doctrine ORM et sa popularité dans les environnements de production. 
 
-        if (!$task) {
-            return $this->json(['error' => 'Task not found'], 404);
-        }
+4. Gestion des tests avec PHPUnit
+Les tests automatisés ont été implémentés avec PHPUnit pour valider les fonctionnalités principales. Les tests couvrent :
 
-        if (!empty($data['name'])) {
-            $task->setName($data['name']);
-        }
+La validation des données envoyées à l'API.
+Les retours des endpoints (codes HTTP, contenu JSON, etc.).
 
-        if (!empty($data['status'])) {
-            $task->setStatus($data['status']);
-        }
-
-        $this->entityManager->flush();
-
-        return $this->json([
-            'message' => 'Task updated successfully',
-            'task' => [
-                'id' => $task->getId(),
-                'name' => $task->getName(),
-                'status' => $task->getStatus(),
-            ],
-        ]);
-    }
-
-    // 4. Supprimer une tâche
-    #[Route('/{id}', name: 'api_tasks_delete', methods: ['DELETE'])]
-    public function delete(int $id): JsonResponse
-    {
-        $task = $this->entityManager->getRepository(Task::class)->find($id);
-
-        if (!$task) {
-            return $this->json(['error' => 'Task not found'], 404);
-        }
-
-        $this->entityManager->remove($task);
-        $this->entityManager->flush();
-
-        return $this->json(['message' => 'Task deleted successfully']);
-    }
-}
+5. Déploiement avec Git
+Git a été utilisé pour versionner le projet et faciliter la collaboration. Les étapes incluent l'initialisation d'un dépôt local, le lien avec un dépôt GitHub, et la gestion des commits pour suivre les modifications.
